@@ -1,75 +1,63 @@
 import matplotlib.pyplot as plt
 import random
 
-random.seed(42)
-
 V_LOW = 90
 V_HIGH = 110
 
-true_value = random.choice([V_LOW, V_HIGH])
-print("True value:", true_value)
-
-p = 0.5  # dealer's belief that the true value is V_HIGH
+N_ROUNDS = 200
 
 def expected_value(belief):
     return belief * V_HIGH + (1 - belief) * V_LOW
 
-print("Dealer's best guess:", expected_value(p))
-
-MU = 0.3  # probability a trader is informed
-
-def trader_order(true_value):
-    if random.random() < MU:
+def trader_order(true_value, mu):
+    if random.random() < mu:
         return "buy" if true_value == V_HIGH else "sell"
     return random.choice(["buy", "sell"])
 
-print("Trader order:", trader_order(true_value))
-
-def prob_buy(value):
+def prob_buy(value, mu):
     if value == V_HIGH:
-        return MU + (1 - MU) / 2
+        return mu + (1 - mu) / 2
     else:
-        return (1 - MU) / 2
+        return (1 - mu) / 2
 
-def belief_after(order, belief):
+def belief_after(order, belief, mu):
     if order == "buy":
-        like_high = prob_buy(V_HIGH)
-        like_low = prob_buy(V_LOW)
+        like_high = prob_buy(V_HIGH, mu)
+        like_low = prob_buy(V_LOW, mu)
     else:
-        like_high = 1 - prob_buy(V_HIGH)
-        like_low = 1 - prob_buy(V_LOW)
+        like_high = 1 - prob_buy(V_HIGH, mu)
+        like_low = 1 - prob_buy(V_LOW, mu)
     top = belief * like_high
     bottom = belief * like_high + (1 - belief) * like_low
     return top / bottom
 
-ask = expected_value(belief_after("buy", p))
-bid = expected_value(belief_after("sell", p))
-print("Bid:", bid, "Ask:", ask)
+def run_sim(mu, seed):
+    random.seed(seed)
+    true_value = random.choice([V_LOW, V_HIGH])
+    p = 0.5  # dealer's belief that the true value is V_HIGH
 
-N_ROUNDS = 200
+    total_pnl = 0
+    bids = []
+    asks = []
+    cum_pnl = []
 
-total_pnl = 0
-bids = []
-asks = []
-cum_pnl = []
+    for t in range(N_ROUNDS):
+        ask = expected_value(belief_after("buy", p, mu))
+        bid = expected_value(belief_after("sell", p, mu))
+        order = trader_order(true_value, mu)
+        if order == "buy":
+            pnl = ask - true_value   # dealer sold at the ask
+        else:
+            pnl = true_value - bid   # dealer bought at the bid
+        total_pnl += pnl
+        bids.append(bid)
+        asks.append(ask)
+        cum_pnl.append(total_pnl)
+        p = belief_after(order, p, mu)
 
-for t in range(N_ROUNDS):
-    ask = expected_value(belief_after("buy", p))
-    bid = expected_value(belief_after("sell", p))
-    order = trader_order(true_value)
-    if order == "buy":
-        pnl = ask - true_value   # dealer sold at the ask
-    else:
-        pnl = true_value - bid   # dealer bought at the bid
-    total_pnl += pnl
-    bids.append(bid)
-    asks.append(ask)
-    cum_pnl.append(total_pnl)
-    if t % 20 == 0:
-        print(t, round(bid, 2), round(ask, 2), round(p, 3))
-    p = belief_after(order, p)
+    return true_value, bids, asks, cum_pnl
 
-print("Total P&L:", round(total_pnl, 2))
+true_value, bids, asks, cum_pnl = run_sim(0.3, 42)
 
 fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True)
 ax_top.plot(bids, label="Bid")
@@ -80,3 +68,13 @@ ax_bottom.plot(cum_pnl)
 ax_bottom.set_ylabel("Cumulative P&L")
 ax_bottom.set_xlabel("Round")
 fig.savefig("quotes_and_pnl.png")
+
+fig, ax = plt.subplots()
+for mu in [0.1, 0.3, 0.6]:
+    _, bids, asks, _ = run_sim(mu, 42)
+    spreads = [a - b for a, b in zip(asks, bids)]
+    ax.plot(spreads, label=f"mu = {mu}")
+ax.set_xlabel("Round")
+ax.set_ylabel("Spread")
+ax.legend()
+fig.savefig("spread_vs_mu.png")
