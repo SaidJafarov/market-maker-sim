@@ -23,3 +23,24 @@ def trader_order(true_value):
     return random.choice(["buy", "sell"])
 
 print("Trader order:", trader_order(true_value))
+
+def prob_buy(value):
+    if value == V_HIGH:
+        return MU + (1 - MU) / 2
+    else:
+        return (1 - MU) / 2
+
+def belief_after(order, belief):
+    if order == "buy":
+        like_high = prob_buy(V_HIGH)
+        like_low = prob_buy(V_LOW)
+    else:
+        like_high = 1 - prob_buy(V_HIGH)
+        like_low = 1 - prob_buy(V_LOW)
+    top = belief * like_high
+    bottom = belief * like_high + (1 - belief) * like_low
+    return top / bottom
+
+ask = expected_value(belief_after("buy", p))
+bid = expected_value(belief_after("sell", p))
+print("Bid:", bid, "Ask:", ask)
