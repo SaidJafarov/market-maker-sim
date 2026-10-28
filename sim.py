@@ -35,7 +35,7 @@ def belief_after(order, belief, mu):
     bottom = belief * like_high + (1 - belief) * like_low
     return top / bottom
 
-def run_sim(mu, seed, fixed_half_spread=None):
+def run_sim(mu, seed, fixed_half_spread=None, spread_fraction=1):
     random.seed(seed)
     true_value = random.choice([V_LOW, V_HIGH])
     p = 0.5  # dealer's belief that the true value is V_HIGH
@@ -49,6 +49,9 @@ def run_sim(mu, seed, fixed_half_spread=None):
         if fixed_half_spread is None:
             ask = expected_value(belief_after("buy", p, mu))
             bid = expected_value(belief_after("sell", p, mu))
+            mid = expected_value(p)
+            ask = mid + spread_fraction * (ask - mid)
+            bid = mid - spread_fraction * (mid - bid)
         else:
             ask = expected_value(p) + fixed_half_spread
             bid = expected_value(p) - fixed_half_spread
@@ -65,10 +68,10 @@ def run_sim(mu, seed, fixed_half_spread=None):
 
     return true_value, bids, asks, cum_pnl
 
-def average_pnl(mu, n_runs, fixed_half_spread=None):
+def average_pnl(mu, n_runs, fixed_half_spread=None, spread_fraction=1):
     final_pnls = []
     for seed in range(n_runs):
-        _, _, _, cum_pnl = run_sim(mu, seed, fixed_half_spread)
+        _, _, _, cum_pnl = run_sim(mu, seed, fixed_half_spread, spread_fraction)
         final_pnls.append(cum_pnl[-1])
     avg = sum(final_pnls) / n_runs
     std_err = statistics.stdev(final_pnls) / n_runs ** 0.5
@@ -102,3 +105,6 @@ for mu in [0.1, 0.3, 0.6]:
 
 avg, std_err = average_pnl(0.3, 2000, fixed_half_spread=1)
 print(f"mu = 0.3, fixed half-spread 1: average P&L over 2000 runs = {avg:.2f} (standard error {std_err:.2f})")
+
+avg, std_err = average_pnl(0.3, 2000, spread_fraction=0.5)
+print(f"mu = 0.3, spread fraction 0.5: average P&L over 2000 runs = {avg:.2f} (standard error {std_err:.2f})")
