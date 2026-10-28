@@ -35,7 +35,7 @@ def belief_after(order, belief, mu):
     bottom = belief * like_high + (1 - belief) * like_low
     return top / bottom
 
-def run_sim(mu, seed):
+def run_sim(mu, seed, fixed_half_spread=None):
     random.seed(seed)
     true_value = random.choice([V_LOW, V_HIGH])
     p = 0.5  # dealer's belief that the true value is V_HIGH
@@ -46,8 +46,12 @@ def run_sim(mu, seed):
     cum_pnl = []
 
     for t in range(N_ROUNDS):
-        ask = expected_value(belief_after("buy", p, mu))
-        bid = expected_value(belief_after("sell", p, mu))
+        if fixed_half_spread is None:
+            ask = expected_value(belief_after("buy", p, mu))
+            bid = expected_value(belief_after("sell", p, mu))
+        else:
+            ask = expected_value(p) + fixed_half_spread
+            bid = expected_value(p) - fixed_half_spread
         order = trader_order(true_value, mu)
         if order == "buy":
             pnl = ask - true_value   # dealer sold at the ask
@@ -61,10 +65,10 @@ def run_sim(mu, seed):
 
     return true_value, bids, asks, cum_pnl
 
-def average_pnl(mu, n_runs):
+def average_pnl(mu, n_runs, fixed_half_spread=None):
     final_pnls = []
     for seed in range(n_runs):
-        _, _, _, cum_pnl = run_sim(mu, seed)
+        _, _, _, cum_pnl = run_sim(mu, seed, fixed_half_spread)
         final_pnls.append(cum_pnl[-1])
     avg = sum(final_pnls) / n_runs
     std_err = statistics.stdev(final_pnls) / n_runs ** 0.5
@@ -95,3 +99,6 @@ fig.savefig("spread_vs_mu.png")
 for mu in [0.1, 0.3, 0.6]:
     avg, std_err = average_pnl(mu, 2000)
     print(f"mu = {mu}: average P&L over 2000 runs = {avg:.2f} (standard error {std_err:.2f})")
+
+avg, std_err = average_pnl(0.3, 2000, fixed_half_spread=1)
+print(f"mu = 0.3, fixed half-spread 1: average P&L over 2000 runs = {avg:.2f} (standard error {std_err:.2f})")
