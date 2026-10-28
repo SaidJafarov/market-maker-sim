@@ -3,6 +3,7 @@
 # sell at random), updating their belief with Bayes' rule after each trade.
 import matplotlib.pyplot as plt
 import random
+import statistics
 
 V_LOW = 90
 V_HIGH = 110
@@ -65,7 +66,9 @@ def average_pnl(mu, n_runs):
     for seed in range(n_runs):
         _, _, _, cum_pnl = run_sim(mu, seed)
         final_pnls.append(cum_pnl[-1])
-    return sum(final_pnls) / n_runs
+    avg = sum(final_pnls) / n_runs
+    std_err = statistics.stdev(final_pnls) / n_runs ** 0.5
+    return avg, std_err
 
 true_value, bids, asks, cum_pnl = run_sim(0.3, 42)
 
@@ -90,4 +93,5 @@ ax.legend()
 fig.savefig("spread_vs_mu.png")
 
 for mu in [0.1, 0.3, 0.6]:
-    print(f"mu = {mu}: average P&L over 2000 runs = {average_pnl(mu, 2000):.2f}")
+    avg, std_err = average_pnl(mu, 2000)
+    print(f"mu = {mu}: average P&L over 2000 runs = {avg:.2f} (standard error {std_err:.2f})")
