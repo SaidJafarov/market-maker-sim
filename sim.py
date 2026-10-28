@@ -1,3 +1,6 @@
+# Simulates a Glosten-Milgrom dealer who quotes a bid and an ask to a mix of
+# informed traders (who know the true value) and noise traders (who buy or
+# sell at random), updating their belief with Bayes' rule after each trade.
 import matplotlib.pyplot as plt
 import random
 
@@ -57,6 +60,13 @@ def run_sim(mu, seed):
 
     return true_value, bids, asks, cum_pnl
 
+def average_pnl(mu, n_runs):
+    final_pnls = []
+    for seed in range(n_runs):
+        _, _, _, cum_pnl = run_sim(mu, seed)
+        final_pnls.append(cum_pnl[-1])
+    return sum(final_pnls) / n_runs
+
 true_value, bids, asks, cum_pnl = run_sim(0.3, 42)
 
 fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True)
@@ -78,3 +88,6 @@ ax.set_xlabel("Round")
 ax.set_ylabel("Spread")
 ax.legend()
 fig.savefig("spread_vs_mu.png")
+
+for mu in [0.1, 0.3, 0.6]:
+    print(f"mu = {mu}: average P&L over 2000 runs = {average_pnl(mu, 2000):.2f}")
