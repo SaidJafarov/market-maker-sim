@@ -47,10 +47,19 @@ print("Bid:", bid, "Ask:", ask)
 
 N_ROUNDS = 200
 
+total_pnl = 0
+
 for t in range(N_ROUNDS):
     ask = expected_value(belief_after("buy", p))
     bid = expected_value(belief_after("sell", p))
     order = trader_order(true_value)
+    if order == "buy":
+        pnl = ask - true_value   # dealer sold at the ask
+    else:
+        pnl = true_value - bid   # dealer bought at the bid
+    total_pnl += pnl
     if t % 20 == 0:
         print(t, round(bid, 2), round(ask, 2), round(p, 3))
     p = belief_after(order, p)
+
+print("Total P&L:", round(total_pnl, 2))
