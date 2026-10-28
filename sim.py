@@ -44,3 +44,13 @@ def belief_after(order, belief):
 ask = expected_value(belief_after("buy", p))
 bid = expected_value(belief_after("sell", p))
 print("Bid:", bid, "Ask:", ask)
+
+N_ROUNDS = 200
+
+for t in range(N_ROUNDS):
+    ask = expected_value(belief_after("buy", p))
+    bid = expected_value(belief_after("sell", p))
+    order = trader_order(true_value)
+    if t % 20 == 0:
+        print(t, round(bid, 2), round(ask, 2), round(p, 3))
+    p = belief_after(order, p)
